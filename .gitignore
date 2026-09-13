@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Swift Package Manager
+/.build
+/Packages
+Package.resolved
+.swiftpm/
+
+# Xcode (SPM packages open in Xcode; keep its per-user cruft out)
+xcuserdata/
+DerivedData/
+*.xcodeproj
+
+# Credentials — never commit
+.netrc
