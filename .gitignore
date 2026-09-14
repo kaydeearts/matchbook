@@ -14,3 +14,6 @@ DerivedData/
 
 # Credentials — never commit
 .netrc
+
+# Local-only (not for the repo)
+SPEC.md
