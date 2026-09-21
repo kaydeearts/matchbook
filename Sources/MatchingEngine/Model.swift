@@ -12,6 +12,11 @@ public enum Side: String {
 public enum OrderType {
     case limit(price: Int)
     case market
+    
+    var limitPrice: Int? {
+        if case .limit(let price) = self { return price }
+        return nil
+    }
 }
 
 public struct Order {

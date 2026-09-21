@@ -22,24 +22,26 @@ class OrderBook {
     var asks: [PriceLevel] = []
     var bids: [PriceLevel] = []
     
-    func processAsk(order: Order) {
-        switch order.type {
+    func processAsk(askOrder: Order) {
+        switch askOrder.type {
         case .market:
-            if let best_bid = findBestBid() {
-                processTrade(ask: order, bid: best_bid)
+            if let bestPriceLevel = findBestBid(),
+               let firstOrder = bestPriceLevel.orders.first {
+                processTrade(ask: askOrder, bid: firstOrder, price: bestPriceLevel.price)
             }
         case .limit(let price):
-            // attempt to find matching bid
+            // search bids for a matching price level using price
             // if no match, insert into asks
         }
     }
         
     
-    func processBid(order: Order) {
-        switch order.type {
+    func processBid(bidOrder: Order) {
+        switch bidOrder.type {
         case .market:
-            if let best_ask = findBestAsk() {
-                processTrade(ask: best_ask, bid: order)
+            if let bestPriceLevel = findBestAsk(),
+               let firstOrder = bestPriceLevel.orders.first {
+                processTrade(ask: firstOrder, bid: bidOrder, price: bestPriceLevel.price)
             }
         case .limit(let price):
             // attempt to find matching ask
@@ -47,17 +49,16 @@ class OrderBook {
         }
     }
     
-    func findBestBid() -> Order? {
+    func findBestBid() -> PriceLevel? {
         // find highest bid price
     }
     
-    func findBestAsk() -> Order? {
+    func findBestAsk() -> PriceLevel? {
         // find lowest ask price
         
     }
     
-    
-    func processTrade(ask: Order, bid: Order) {
+    func processTrade(ask: Order, bid: Order, price: Int) {
         // create trade out of orders
         // ...wip
     }
