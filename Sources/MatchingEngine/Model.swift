@@ -27,3 +27,8 @@ public struct Trade {
     let price: Int
     let quantity: Int
 }
+
+public struct PriceLevel {
+    let price: Int
+    var orders: [Order]
+}
