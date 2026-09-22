@@ -22,45 +22,68 @@ class OrderBook {
     var asks: [PriceLevel] = []
     var bids: [PriceLevel] = []
     
-    func processAsk(askOrder: Order) {
-        switch askOrder.type {
-        case .market:
-            if let bestPriceLevel = findBestBid(),
-               let firstOrder = bestPriceLevel.orders.first {
-                processTrade(ask: askOrder, bid: firstOrder, price: bestPriceLevel.price)
+    func processOrder(newOrder: Order) {
+        var bestPriceLevel: PriceLevel?
+        let isBuy = newOrder.side == .buy
+        var toFulfill = newOrder.quantity
+        
+        while toFulfill != 0 {
+            switch newOrder.type {
+            case .market:
+                bestPriceLevel = matchPriceLevel(forSide: newOrder.side, nil)
+            case .limit(let price):
+                bestPriceLevel = matchPriceLevel(forSide: newOrder.side, price)
+                if bestPriceLevel == nil {
+                    switch newOrder.side {
+                    case .buy:  insertLimitOrder(price, newOrder, into: &bids)
+                    case .sell: insertLimitOrder(price, newOrder, into: &asks)
+                    }
+                }
             }
-        case .limit(let price):
-            // search bids for a matching price level using price
-            // if no match, insert into asks
+            
+            if let bestPriceLevel, let firstOrder = bestPriceLevel.orders.first {
+                let fulfilled = processTrade(newOrder, firstOrder, bestPriceLevel.price, quantity: toFulfill)
+                toFulfill = toFulfill - fulfilled
+            }
         }
     }
-        
     
-    func processBid(bidOrder: Order) {
-        switch bidOrder.type {
-        case .market:
-            if let bestPriceLevel = findBestAsk(),
-               let firstOrder = bestPriceLevel.orders.first {
-                processTrade(ask: firstOrder, bid: bidOrder, price: bestPriceLevel.price)
+    func insertLimitOrder(_ orderPrice: Int, _ order: Order, into levels: inout [PriceLevel]) {
+        // find first index where orderPrice is less than or equal to it
+        if let idx = levels.firstIndex(where: { $0.price >= orderPrice }) {
+            if levels[idx].price == orderPrice {
+                // price level exists, so place order within it
+                levels[idx].orders.append(order)
+            } else {
+                
+                // orderPrice < levels[idx].price, so insert before it
+                levels.insert(PriceLevel(price: orderPrice, orders: [order]), at: idx)
             }
-        case .limit(let price):
-            // attempt to find matching ask
-            // if no match, insert into bids
+        } else {
+            // idx is nil, thus orderPrice is highest price. Insert at end of array
+            levels.append(PriceLevel(price: orderPrice, orders: [order]))
         }
     }
+
     
-    func findBestBid() -> PriceLevel? {
-        // find highest bid price
-    }
-    
-    func findBestAsk() -> PriceLevel? {
-        // find lowest ask price
+    func processTrade(_ newOrder: Order, _ firstOrder: Order, _ price: Int, quantity: Int) -> Int {
+        // first determine how much is fulfillable in this order, then pass into quantity
+//        let trade = Trade(takerId: newOrder.id, makerId: firstOrder.id, price: price, quantity: quantity)
         
     }
     
-    func processTrade(ask: Order, bid: Order, price: Int) {
-        // create trade out of orders
-        // ...wip
+    func matchPriceLevel(forSide: Side, _ requestedPrice: Int?) -> PriceLevel? {
+        let best: PriceLevel?
+        switch forSide {
+        case .buy: best = asks.first // buy orders are given lowest asks
+        case .sell: best = bids.last  // sell orders are given highest buys
+        }
+        
+        guard let best else { return nil }
+        guard let requestedPrice else { return best } // check if there's price to compare to (aka limit order)
+        let crosses = (forSide == .buy) ? best.price <= requestedPrice
+                                     : best.price >= requestedPrice
+        return crosses ? best : nil
     }
 
 }
