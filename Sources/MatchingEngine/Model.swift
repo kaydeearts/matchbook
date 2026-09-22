@@ -5,6 +5,8 @@
 //  Created by Kamilé Demir on 9/13/26.
 //
 
+import Collections
+
 public enum Side: String {
     case buy, sell
 }
@@ -35,5 +37,5 @@ public struct Trade {
 
 public struct PriceLevel {
     let price: Int
-    var orders: [Order]
+    var orders: Deque<Order>
 }
