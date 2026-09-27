@@ -19,4 +19,17 @@ final class MatchingEngineTests: XCTestCase {
     func testPackageBuilds() {
         XCTAssertEqual(MatchingEngine.version, "0.0.1")
     }
+    
+    func testWorkedExample() {
+        let book = OrderBook()
+        _ = book.processOrder(newOrder: Order(id: 1, side: .buy,  type: .limit(price: 10), quantity: 100))
+        let trades = book.processOrder(newOrder: Order(id: 2, side: .sell, type: .limit(price: 10), quantity: 50))
+        print(trades)   // expect: one trade, 50 @ $10, taker 2 / maker 1
+        XCTAssertEqual(trades.count, 1)
+        let trade = trades[0]
+        XCTAssertEqual(trade.takerId, 2)
+        XCTAssertEqual(trade.makerId, 1)
+        XCTAssertEqual(trade.price, 10)
+        XCTAssertEqual(trade.quantity, 50)
+    }
 }

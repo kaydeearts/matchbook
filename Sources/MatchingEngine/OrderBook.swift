@@ -57,6 +57,7 @@ class OrderBook {
                 break
             }
         }
+        return trades
     }
     
     func insertLimitOrder(_ orderPrice: Int, _ order: Order, into levels: inout [PriceLevel]) {
