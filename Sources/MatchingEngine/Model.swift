@@ -25,7 +25,7 @@ public struct Order {
     let id: Int
     let side: Side
     let type: OrderType
-    let quantity: Int
+    var quantity: Int
 }
 
 public struct Trade {

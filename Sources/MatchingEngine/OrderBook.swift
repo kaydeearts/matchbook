@@ -22,9 +22,9 @@ class OrderBook {
     var asks: [PriceLevel] = []
     var bids: [PriceLevel] = []
     
-    func processOrder(newOrder: Order) {
+    func processOrder(newOrder: Order) -> [Trade]{
+        var trades: [Trade] = []
         var bestPriceLevel: PriceLevel?
-        let isBuy = newOrder.side == .buy
         var toFulfill = newOrder.quantity
         
         while toFulfill != 0 {
@@ -33,17 +33,28 @@ class OrderBook {
                 bestPriceLevel = matchPriceLevel(forSide: newOrder.side, nil)
             case .limit(let price):
                 bestPriceLevel = matchPriceLevel(forSide: newOrder.side, price)
-                if bestPriceLevel == nil {
-                    switch newOrder.side {
-                    case .buy:  insertLimitOrder(price, newOrder, into: &bids)
-                    case .sell: insertLimitOrder(price, newOrder, into: &asks)
-                    }
-                }
             }
             
             if let bestPriceLevel, let firstOrder = bestPriceLevel.orders.first {
-                let fulfilled = processTrade(newOrder, firstOrder, bestPriceLevel.price, quantity: toFulfill)
-                toFulfill = toFulfill - fulfilled
+                let trade = processTrade(newOrder, firstOrder, bestPriceLevel.price, quantity: min(toFulfill, firstOrder.quantity))
+                trades.append(trade)
+                toFulfill = toFulfill - trade.quantity
+            } else {
+                break
+            }
+        }
+        
+        if toFulfill > 0 {
+            switch newOrder.type {
+            case .limit(let price):
+                var leftoverOrder = newOrder
+                leftoverOrder.quantity = toFulfill
+                switch newOrder.side {
+                case .buy:  insertLimitOrder(price, leftoverOrder, into: &bids)
+                case .sell: insertLimitOrder(price, leftoverOrder, into: &asks)
+                }
+            case .market:
+                break
             }
         }
     }
@@ -65,11 +76,21 @@ class OrderBook {
         }
     }
 
+    func consumeFront(of levels: inout [PriceLevel], at levelIdx: Int, by amount: Int) {
+        levels[levelIdx].orders[0].quantity -= amount
+        if levels[levelIdx].orders[0].quantity <= 0 { levels[levelIdx].orders.removeFirst()}
+        if levels[levelIdx].orders.count == 0 { levels.remove(at: levelIdx) }
+    }
     
-    func processTrade(_ newOrder: Order, _ firstOrder: Order, _ price: Int, quantity: Int) -> Int {
-        // first determine how much is fulfillable in this order, then pass into quantity
-//        let trade = Trade(takerId: newOrder.id, makerId: firstOrder.id, price: price, quantity: quantity)
+    func processTrade(_ newOrder: Order, _ firstOrder: Order, _ price: Int, quantity: Int) -> Trade {
+        let trade = Trade(takerId: newOrder.id, makerId: firstOrder.id, price: price, quantity: quantity)
+        // remove the firstOrder from the proper array
+        switch newOrder.side {
+        case .buy: consumeFront(of:&asks, at:0, by:quantity)
+        case .sell: consumeFront(of:&bids, at:bids.count - 1, by:quantity)
+        }
         
+        return trade
     }
     
     func matchPriceLevel(forSide: Side, _ requestedPrice: Int?) -> PriceLevel? {
@@ -79,11 +100,11 @@ class OrderBook {
         case .sell: best = bids.last  // sell orders are given highest buys
         }
         
-        guard let best else { return nil }
-        guard let requestedPrice else { return best } // check if there's price to compare to (aka limit order)
+        guard let best else { return nil }              // no opposite book
+        guard let requestedPrice else { return best }   // market order
         let crosses = (forSide == .buy) ? best.price <= requestedPrice
-                                     : best.price >= requestedPrice
-        return crosses ? best : nil
+                                        : best.price >= requestedPrice
+        return crosses ? best : nil                     // limit: only if it crosses
     }
 
 }
