@@ -1,8 +1,7 @@
-import XCTest
+import Testing
 @testable import MatchingEngine
 
-// Phase 1 test targets — write these as you build the engine. They're the
-// acceptance criteria for the matching core:
+// Phase 1 test targets — acceptance criteria for the matching core:
 //
 //   - a limit order that doesn't cross rests on the book
 //   - a crossing limit order generates a trade at the RESTING (maker) price
@@ -11,25 +10,38 @@ import XCTest
 //   - a market order sweeps multiple price levels until filled or book-empty
 //   - cancel removes a resting order (and it no longer participates in matches)
 //   - conservation: total shares and cash are unchanged by a sequence of trades
-//
-// (You can switch this to the Swift Testing framework — `import Testing` — if
-// you'd prefer the modern style; XCTest is here so the package is green today.)
 
-final class MatchingEngineTests: XCTestCase {
-    func testPackageBuilds() {
-        XCTAssertEqual(MatchingEngine.version, "0.0.1")
+@Suite struct MatchingEngineTests {
+
+    @Test func packageBuilds() {
+        #expect(MatchingEngine.version == "0.0.1")
     }
-    
-    func testWorkedExample() {
+
+    @Test func workedExample() throws {
         let book = OrderBook()
-        _ = book.processOrder(newOrder: Order(id: 1, side: .buy,  type: .limit(price: 10), quantity: 100))
-        let trades = book.processOrder(newOrder: Order(id: 2, side: .sell, type: .limit(price: 10), quantity: 50))
-        print(trades)   // expect: one trade, 50 @ $10, taker 2 / maker 1
-        XCTAssertEqual(trades.count, 1)
-        let trade = trades[0]
-        XCTAssertEqual(trade.takerId, 2)
-        XCTAssertEqual(trade.makerId, 1)
-        XCTAssertEqual(trade.price, 10)
-        XCTAssertEqual(trade.quantity, 50)
+        
+        let initPrice = 10
+        let initQuantity = 100
+        let (initOrder, trade) = book.submit(side: .buy,  type: .limit(price: initPrice), quantity: initQuantity)
+        #expect(trade.count == 0)
+        #expect(book.getBids().count == 1)
+        #expect(book.getBids()[0].price == initPrice)
+        #expect(book.getBids()[0].orders.count == 1)
+        #expect(book.getBids()[0].orders[0].side == .buy)
+        #expect(book.getBids()[0].orders[0].quantity == initQuantity)
+        
+        // one trade, 50 @ $10, taker 2 (incoming sell) / maker 1 (resting buy)
+        let secondQuantity = 50
+        let (secondOrder, trade2) = book.submit(side: .sell, type: .limit(price: initPrice), quantity: secondQuantity)
+        
+        #expect(trade2.count == 1)
+        #expect(trade2[0].makerId == initOrder.id)
+        #expect(trade2[0].takerId == secondOrder.id)
+        #expect(trade2[0].price == initPrice)
+        #expect(trade2[0].quantity == initQuantity - secondQuantity)
+        
+        #expect(book.getBids().count == 1)
+        #expect(book.getBids()[0].orders.count == 1)
+        #expect(book.getBids()[0].orders[0].quantity == initQuantity - secondQuantity)
     }
 }
