@@ -19,10 +19,27 @@
 
 
 class OrderBook {
+    private var nextOrderId: Int = 0
     var asks: [PriceLevel] = []
     var bids: [PriceLevel] = []
     
-    func processOrder(newOrder: Order) -> [Trade]{
+    func getAsks() -> [PriceLevel] {
+        return asks
+    }
+    
+    func getBids() -> [PriceLevel] {
+        return bids
+    }
+    
+    func submit(side: Side, type: OrderType, quantity: Int) -> (order: Order, trade: [Trade]) {
+        var trades: [Trade] = []
+        nextOrderId += 1
+        let newOrder = Order(id: nextOrderId, side: side, type: type, quantity: quantity)
+        trades += processOrder(newOrder)
+        return (newOrder, trades)
+    }
+    
+    func processOrder(_ newOrder: Order) -> [Trade]{
         var trades: [Trade] = []
         var bestPriceLevel: PriceLevel?
         var toFulfill = newOrder.quantity
