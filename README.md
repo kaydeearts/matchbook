@@ -31,7 +31,12 @@ swift run matchbook
 
 ## Roadmap
 
-- [ ] Matching engine core — order book, price-time matching, limit + market + cancel
-- [ ] Concurrency — order book as an actor, stress-tested, throughput measured
-- [ ] Network layer — TCP via Network.framework, multiple concurrent clients
-- [ ] Live terminal view, profiling, and latency numbers
+**Phase 1 — Matching engine core** *(nearly done)*
+- [x] Order book — sorted price levels, FIFO deques
+- [x] Matching — limit + market orders, partial fills, multi-level sweeps, price-time priority
+- [x] Tests — comprehensive Swift Testing suite
+- [ ] Cancel — remove a resting order by id
+
+- [ ] **Phase 2 — Concurrency** — order book as an actor, stress-tested, throughput measured
+- [ ] **Phase 3 — Network layer** — TCP via Network.framework, multiple concurrent clients
+- [ ] **Phase 4 — Polish** — live terminal view, profiling, and latency numbers
